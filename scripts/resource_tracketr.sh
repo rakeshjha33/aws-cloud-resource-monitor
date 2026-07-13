@@ -2,62 +2,78 @@
 #################################################################
 # Author: Rakesh Jha
 # Date: July 2026
-# Version: v2.0 (Grafana Integration)
-# Description: Gathers AWS metrics and streams logs to Loki.
+# Version: v1.1
+# Description: Tracks AWS resource usage and sends data to a
+#              decoupled API Gateway backend via GitHub Actions.
 #################################################################
-set -e # Terminate script execution immediately if any command fails
 
+set -e # Exit immediately if a command exits with a non-zero status
+
+# ---- CONFIGURATION ----
+# Pulls the URL securely from the GitHub Actions environment secret
+API_URL="${AWS_TRACKER_API_URL}" 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-UNIX_NANO=$(date +%s%N)
 
-echo "========================================="
-echo " Starting AWS Audit Execution: $TIMESTAMP"
-echo "========================================="
+echo "===================================================="
+echo " Starting AWS Resource Tracking: $TIMESTAMP"
+echo "===================================================="
 
-# ---- TELEMETRY INVENTORY COMPILATION ----
-echo "Auditing compute infrastructure..."
-EC2_COUNT=$(aws ec2 describe-instances --query "Reservations[*].Instances[*].InstanceId" --output text | wc -w)
-
-echo "Auditing cloud object storage..."
-S3_COUNT=$(aws s3api list-buckets --query "Buckets[*].Name" --output text | wc -w)
-
-echo "Auditing serverless functions..."
-LAMBDA_COUNT=$(aws lambda list-functions --query "Functions[*].FunctionName" --output text | wc -w)
-
-echo "Auditing identity management layer..."
-IAM_COUNT=$(aws iam list-users --query "Users[*].UserName" --output text | wc -w)
-
-# ---- PACKAGING LOGQL STREAM PAYLOAD ----
-# Loki strictly requires log fields to be strings paired with a nanosecond timestamp
-PAYLOAD=$(jq -n \
-  --arg nano "$UNIX_NANO" \
-  --arg ec2 "$EC2_COUNT" \
-  --arg s3 "$S3_COUNT" \
-  --arg lam "$LAMBDA_COUNT" \
-  --arg iam "$IAM_COUNT" \
-  '{
-    streams: [{
-      stream: { job: "aws-resource-tracker", env: "production" },
-      values: [[ $nano, "{\"ec2\": \($ec2), \"s3\": \($s3), \"lambda\": \($lam), \"iam\": \($iam)}" ]]
-    }]
-  }')
-
-# ---- INGESTION TRANSIT TO GRAFANA LOKI ----
-echo "Streaming structured telemetry payload to Grafana Cloud..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-     -H "Content-Type: application/json" \
-     -u "${GRAFANA_USER_ID}:${GRAFANA_TOKEN}" \
-     -X POST \
-     -d "$PAYLOAD" \
-     "$GRAFANA_LOKI_URL")
-
-if [ "$RESPONSE" -eq 204 ] || [ "$RESPONSE" -eq 200 ]; then
-    echo "SUCCESS: Metrics ingested cleanly (HTTP $RESPONSE)."
-else
-    echo "ERROR: Transmission failed with status code (HTTP $RESPONSE)."
+# Sanity check to prevent empty payload dispatches
+if [ -z "$API_URL" ]; then
+    echo "ERROR: AWS_TRACKER_API_URL environment variable is missing."
+    echo "Please ensure the secret is set up in your repository."
     exit 1
 fi
 
-echo "========================================="
-echo " Audit Workflow Successfully Terminated"
-echo "========================================="
+# ---- DATA GATHERING ----
+
+echo "Fetching EC2 Instances..."
+EC2_DATA=$(aws ec2 describe-instances \
+    --query "Reservations[*].Instances[*].{ID:InstanceId,Type:InstanceType,State:State.Name,LaunchTime:LaunchTime}" \
+    --output json)
+
+echo "Fetching S3 Buckets..."
+S3_DATA=$(aws s3api list-buckets \
+    --query "Buckets[*].{Name:Name,CreationDate:CreationDate}" \
+    --output json)
+
+echo "Fetching Lambda Functions..."
+LAMBDA_DATA=$(aws lambda list-functions \
+    --query "Functions[*].{Name:FunctionName,Runtime:Runtime,LastModified:LastModified}" \
+    --output json)
+
+echo "Fetching IAM Users..."
+IAM_DATA=$(aws iam list-users \
+    --query "Users[*].{UserName:UserName,UserId:UserId,CreateDate:CreateDate}" \
+    --output json)
+
+# ---- PACKAGING PAYLOAD ----
+
+echo "Packaging telemetry dataset into JSON format..."
+# Combine all variables into a single clean JSON schema structure using jq
+PAYLOAD=$(jq -n \
+    --arg ts "$TIMESTAMP" \
+    --argjson ec2 "$EC2_DATA" \
+    --argjson s3 "$S3_DATA" \
+    --argjson lambda "$LAMBDA_DATA" \
+    --argjson iam "$IAM_DATA" \
+    '{timestamp: $ts, ec2: $ec2, s3: $s3, lambda: $lambda, iam: $iam}')
+
+# ---- SENDING DATA ----
+echo "Sending payload to API Gateway endpoint..."
+
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+    -H "Content-Type: application/json" \
+    -d "$PAYLOAD" \
+    "$API_URL")
+
+if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 201 ]; then
+    echo "SUCCESS: Data successfully uploaded to dashboard backend (HTTP $RESPONSE)."
+else
+    echo "ERROR: Failed to upload data (HTTP $RESPONSE)."
+    exit 1
+fi
+
+echo "===================================================="
+echo " Resource Tracking Completed Successfully."
+echo "===================================================="

@@ -1,0 +1,183 @@
+/* ==========================================================================
+   AWS Resource Tracker - Core Styles
+   ========================================================================== */
+
+/* Design System Tokens */
+:root {
+    --bg-main: #0f172a;       /* Slate 900 */
+    --bg-card: #1e293b;       /* Slate 800 */
+    --border-color: #334155;  /* Slate 700 */
+    --text-primary: #f8fafc;  /* Slate 50 */
+    --text-muted: #94a3b8;    /* Slate 400 */
+    --accent: #10b981;        /* Emerald 500 */
+    --accent-glow: rgba(16, 185, 129, 0.15);
+    --font-stack: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Global Reset & Base */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-stack);
+    min-height: 100vh;
+    padding: 2rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Layout Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header Component */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-b: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+header h1 {
+    font-size: 1.875rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--accent);
+}
+
+header p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+#last-updated {
+    font-size: 0.75rem;
+    background-color: var(--bg-card);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    transition: all 0.3s ease;
+}
+
+/* Infrastructure Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.card h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.card .metric-value {
+    font-size: 2.25rem;
+    font-weight: 900;
+    margin-top: 0.5rem;
+    color: var(--text-primary);
+}
+
+/* Detailed Inventory Section */
+.inventory-panel {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.inventory-panel h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+/* Data Content Styling */
+.inventory-section {
+    margin-bottom: 1.5rem;
+}
+
+.inventory-section:last-child {
+    margin-bottom: 0;
+}
+
+.inventory-section h4 {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.inventory-list {
+    list-style-position: inside;
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.inventory-list li {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(15, 23, 42, 0.4);
+    margin-bottom: 0.375rem;
+    border-radius: 0.375rem;
+    border-left: 3px solid var(--border-color);
+}
+
+.inventory-list li:hover {
+    border-left-color: var(--accent);
+    color: var(--text-primary);
+}
+
+/* Inline code highlight for IDs */
+code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background-color: var(--bg-main);
+    color: #f43f5e; /* Rose 500 for high-contrast visibility */
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.825rem;
+}

@@ -1,0 +1,38 @@
+name: AWS Resource Tracker Automation
+
+on:
+  schedule:
+    # Runs every 15 minutes (Standard POSIX Cron syntax)
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows you to manually trigger the script from the UI whenever you want
+
+jobs:
+  track-resources:
+    runs-on: ubuntu-24.04 # Matches your preferred environment
+
+    steps:
+    # Step 1: Clone the repository code onto the runner
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Step 2: Configure AWS CLI credentials on the runner dynamically
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1 # Change to your primary AWS region
+
+    # Step 3: Install jq (pre-installed on most runners, but good practice to ensure)
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+
+    # Step 4: Make the script executable and run it
+    - name: Execute Resource Tracker Script
+      env:
+        AWS_TRACKER_API_URL: ${{ secrets.AWS_TRACKER_API_URL }}
+      run: |
+        chmod +x ./scripts/resource_tracker.sh
+        ./scripts/resource_tracker.sh
